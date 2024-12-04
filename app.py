@@ -7,7 +7,12 @@ from langchain.chains import RetrievalQA
 from langchain.document_loaders import PyPDFLoader, WebBaseLoader
 import pysqlite3
 import sys
+
+# Fix the sqlite3 module issue
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
+# Page configuration (must be the first Streamlit command)
+st.set_page_config(page_title='🦜🔗 Enhanced Ask the Doc App')
 
 # Initialize persistent storage for document names
 if 'document_list' not in st.session_state:
@@ -62,7 +67,6 @@ with st.sidebar:
         st.write("No documents loaded.")
 
 # Page title
-st.set_page_config(page_title='🦜🔗 Enhanced Ask the Doc App')
 st.title('🦜🔗 Enhanced Ask the Doc App')
 
 # File or URL upload

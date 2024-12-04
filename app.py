@@ -46,18 +46,30 @@ def load_document(file=None, url=None):
 
 def generate_response(documents, openai_api_key, query_text):
     """Generate a response from the loaded documents."""
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    # Split documents into smaller chunks
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)  # Smaller chunks with overlap
     texts = text_splitter.split_documents(documents)
+    
+    # Select embeddings
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    
+    # Create a vectorstore from documents and use ChromaDB for persistence
     db = Chroma.from_documents(texts, embeddings, persist_directory="chromadb_storage")
     db.persist()
-    retriever = db.as_retriever()
+    retriever = db.as_retriever(search_kwargs={"k": 5})  # Retrieve only the top 5 most relevant chunks
+    
+    # Create QA chain with reduced completion length
     qa = RetrievalQA.from_chain_type(
-        llm=OpenAI(openai_api_key=openai_api_key),
+        llm=OpenAI(
+            openai_api_key=openai_api_key,
+            max_tokens=150  # Limit the completion length to 150 tokens
+        ),
         chain_type='stuff',
         retriever=retriever
     )
+    
     return qa.run(query_text)
+
 
 # Sidebar
 with st.sidebar:

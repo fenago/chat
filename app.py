@@ -49,32 +49,38 @@ def load_document(file=None, url=None):
 
 def generate_response(documents, openai_api_key, query_text):
     """Generate a response from the loaded documents."""
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    texts = text_splitter.split_documents(documents)
-    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-    db = Chroma.from_documents(texts, embeddings, persist_directory="chromadb_storage")
-    db.persist()
-    retriever = db.as_retriever(search_kwargs={"k": 5})
-    qa = RetrievalQA.from_chain_type(
-        llm=OpenAI(
-            openai_api_key=openai_api_key,
-            max_tokens=150
-        ),
-        chain_type='stuff',
-        retriever=retriever
-    )
-    return qa.run(query_text)
+    try:
+        text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+        texts = text_splitter.split_documents(documents)
+        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+        db = Chroma.from_documents(texts, embeddings, persist_directory="chromadb_storage")
+        db.persist()
+        retriever = db.as_retriever(search_kwargs={"k": 3})  # Fetch top 3 relevant chunks
+        qa = RetrievalQA.from_chain_type(
+            llm=OpenAI(
+                openai_api_key=openai_api_key,
+                max_tokens=150  # Limit response length
+            ),
+            chain_type='stuff',
+            retriever=retriever
+        )
+        return qa.run(query_text)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 def generate_code(prompt, together_api_key):
     """Generate code using Together.ai and Code Llama."""
-    url = "https://api.together.ai/code"
-    headers = {"Authorization": f"Bearer {together_api_key}"}
-    data = {"prompt": prompt, "model": "code-llama"}
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        return response.json().get('code', "No code returned")
-    else:
-        return f"Error: {response.json().get('message', 'Unknown error')}"
+    try:
+        url = "https://api.together.ai/code"
+        headers = {"Authorization": f"Bearer {together_api_key}"}
+        data = {"prompt": prompt, "model": "code-llama"}
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json().get('code', "No code returned")
+        else:
+            return f"Error: {response.json().get('message', 'Unknown error')}"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 def summarize_document(documents):
     """Summarize the loaded documents."""

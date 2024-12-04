@@ -5,6 +5,7 @@ from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.document_loaders import PyPDFLoader, WebBaseLoader
+import tempfile
 import pysqlite3
 import sys
 
@@ -26,8 +27,13 @@ def add_to_sidebar(doc_name):
 def load_document(file=None, url=None):
     """Load a document from a file or URL."""
     if file is not None:
-        # Load a PDF document
-        loader = PyPDFLoader(file)
+        # Save the uploaded file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            temp_file.write(file.read())
+            temp_file_path = temp_file.name
+        
+        # Load a PDF document from the temporary file
+        loader = PyPDFLoader(temp_file_path)
         documents = loader.load()
         add_to_sidebar(file.name)
         return documents
